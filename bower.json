@@ -1,0 +1,25 @@
+{
+  "name": "ld30",
+  "version": "0.0.0",
+  "homepage": "https://github.com/TeamRPC/ld30",
+  "authors": [
+    "Chris Grimmett <chris@grimtech.net>"
+  ],
+  "main": "client/index.html",
+  "keywords": [
+    "game"
+  ],
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "description": "a game made for ld30",
+  "dependencies": {
+    "pixi.js": "~1.6.1"
+  }
+}
