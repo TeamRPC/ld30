@@ -307,8 +307,8 @@ window.addEventListener("load",function() {
 	    // Create the player and add them to the stage
 	    console.log('my id: ' + info.id + ' my team: ' + info.team);
 
-	    if (info.team == 0) var player = stage.insert(new Q.Player({ sprite: 'knight' }));
-	    if (info.team == 1) var player = stage.insert(new Q.Player({ sprite: 'robot' }));	    
+	    if (info.team == 0) var player = stage.insert(new Q.Player({ sheet: 'knight' }));
+	    if (info.team == 1) var player = stage.insert(new Q.Player({ sheet: 'robot' }));	    
 	    player.p.team = info.team;
 	});	
 	
