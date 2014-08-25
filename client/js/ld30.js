@@ -11,9 +11,9 @@ window.addEventListener("load",function() {
 
     // connect to the server for multiplayer
     var socket = io.connect('http://localhost');
-    socket.on('info', function(info) {
-	console.log('UID assigned by server: ' + info.id);
-    });
+
+
+    
 
     
     // Set up an instance of the Quintus engine  and include
@@ -60,6 +60,7 @@ window.addEventListener("load",function() {
 		comboActive: false      // whether or not player is doing a combo
 	    });
 
+	    
 	    this.add('2d, platformerControls, keyboardControls, animation');
 
 	    Q.input.on('fire', this, this.fireCombo);
@@ -304,9 +305,16 @@ window.addEventListener("load",function() {
             dataAsset: 'level.json',
             sheet:     'tiles' }));
 
-	
-	// Create the player and add them to the stage
-	var player = stage.insert(new Q.Player());
+	// connect to server, get our team
+	socket.on('info', function(info) {
+	    // with this info, we can spawn.
+	    // Create the player and add them to the stage
+	    console.log('my id: ' + info.id + ' my team: ' + info.team);
+
+	    if (info.team == 0) var player = stage.insert(new Q.Player({ sprite: knight }));
+	    if (info.team == 1) var player = stage.insert(new Q.Player({ sprite: robot }));	    
+	    player.p.team = info.team;
+	});	
 	
 	// Give the stage a moveable viewport and tell it
 	// to follow the player.
