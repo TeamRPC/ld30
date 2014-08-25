@@ -1,0 +1,170 @@
+{
+    "player": {
+	"sx": 0,
+	"sy": 0,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 32
+
+    },
+    "idle": {
+	"sx": 0,
+	"sy": 0,
+	"cols": 5,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 5
+    },
+    
+    "cooldown": {
+	"sx": 100,
+	"sy": 0,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 1
+    },
+    "rightpunch": {
+	"sx": 200,
+	"sy": 0,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 1
+    },
+    "leftpunch":{
+	"sx": 300,
+	"sy": 0,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 1
+    },
+    "leftuppercut0":{
+	"sx": 400,
+	"sy": 0,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 1
+    },
+    "leftuppercut1":{
+	"sx": 500,
+	"sy": 0,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 1	
+    },
+    "leftuppercut2":{
+	"sx": 600,
+	"sy": 0,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 1
+    },
+    "combo2_1":{
+	"sx": 700,
+	"sy": 0,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 1
+    },
+    
+    "combo2_0":{
+	"sx": 0,
+	"sy": 100,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 1
+    },	
+    "combo2_2":{
+	"sx": 100,
+	"sy": 100,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 1
+    },
+    "jump0":{
+	"sx": 300,
+	"sy": 100,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 5
+    },
+    "crouch":{
+	"sx": 300,
+	"sy": 100,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 1
+    },
+    "jump1":{
+	"sx": 400,
+	"sy": 100,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 1
+    },
+    "jump2":{
+	"sx": 500,
+	"sy": 100,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 1
+    },
+
+    
+    "run0":{
+	"sx": 0,
+	"sy": 200,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 1
+    },
+    "run1":{
+	"sx": 100,
+	"sy": 200,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 1
+    },
+    "runrightpunch1":{
+	"sx": 200,
+	"sy": 200,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 1
+    },
+    "unknown0":{
+	"sx": 300,
+	"sy": 200,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 1
+    },
+
+    
+    "unknown1":{
+	"sx": 200,
+	"sy": 300,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 1
+    }
+}
+
