@@ -8,6 +8,24 @@
 	"frames": 32
 
     },
+    "robot": {
+	"sx": 500,
+	"sy": 0,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 32
+
+    },
+    "knight": {
+	"sx": 0,
+	"sy": 0,
+	"cols": 8,
+	"tilew": 99,
+	"tileh": 99,
+	"frames": 32
+
+    },    
     "idle": {
 	"sx": 0,
 	"sy": 0,
