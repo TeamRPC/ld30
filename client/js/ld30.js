@@ -11,8 +11,8 @@ window.addEventListener("load",function() {
 
     // connect to the server for multiplayer
     var socket = io.connect('http://localhost');
-    socket.on('info', function(data) {
-	console.log('DATA FROM SERVER: ' + data);
+    socket.on('info', function(info) {
+	console.log('UID assigned by server: ' + info.id);
     });
 
     
