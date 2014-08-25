@@ -9,6 +9,13 @@
 // target for the player.
 window.addEventListener("load",function() {
 
+    // connect to the server for multiplayer
+    var socket = io.connect('http://localhost');
+    socket.on('info', function(data) {
+	console.log('DATA FROM SERVER: ' + data);
+    });
+
+    
     // Set up an instance of the Quintus engine  and include
     // the Sprites, Scenes, Input and 2D module. The 2D module
     // includes the `TileLayer` class as well as the `2d` componet.
@@ -45,7 +52,9 @@ window.addEventListener("load",function() {
 		sprite: "player",
 		x: 500,           // You can also set additional properties that can
 		y: 100,            // be overridden on object creation
-		jumpSpeed: -500,
+		jumpSpeed: -300,
+
+		hp: 6,
 		comboLevel: 0,      // combo level player is at. they get 3 combos (0-2)
 		comboReady: true,   // whether or not player can do a combo right now
 		comboActive: false      // whether or not player is doing a combo
@@ -141,41 +150,61 @@ window.addEventListener("load",function() {
 	},
 
 	armCombo: function() {
-	    this.p.comboReady = true;
+	    console.log('arm combo!');
+	    if (this.p.comboLevel < 3) {
+		this.p.comboReady = true;
+		this.p.comboLevel++;
+	    } else {
+		console.log('out of combos');
+		Q.input.off('fireUp');
+	    }
 	},
 	
 	fireCombo: function() {
 	    if (this.p.comboLevel == 0 && this.p.comboReady) {
 		this.p.comboReady == false;
 		this.combo0();
-		this.p.comboLevel++;
 
 	    } else if (this.p.comboLevel == 1 && this.p.comboReady) {
 		this.p.comboReady == false;		
 		this.combo1();
-		this.p.comboLevel++;
 		
 	    } else if (this.p.comboLevel == 2 && this.p.comboReady) {
 		this.p.comboReady == false;		
 		this.combo2();
-		this.p.comboLevel++;
-	    }	    
+	    } else {
+		console.log('combo not ready');
+	    }
 	},
 
 	combo0: function() {
 	    console.log('COMBO0 firing');
 	    this.p.comboActive = true;
+	    // do the attack
+	    console.log('new attack at');
+	    console.dir(this.c.points);
+
+	    if (this.p.direction == "right") {
+		
+		this.stage.insert(new Q.Attack({ x: this.c.points[0][0], y: this.c.points[0][1] }));
+//	    } else {
+//		this.stage.insert(new Q.Attack({ x: this.c.points[0][
+	    }
+	    this.p.comboActive = false;
 	},
 	
 	combo1: function() {
 	    console.log('COMBO1 firing');
-	    this.p.comboActive = true;	    
+	    this.p.comboActive = true;
+	    // do the attack
+	    this.p.comboActive = false;
 	},
 
 	combo2: function() {
 	    console.log('COMBO2 firing');
 	    this.p.comboActive = true;
-	    //this.p.ignoreControls = true; // takes over until done
+	    // do the attack
+	    this.p.comboActive = false;
 	}
 
     });
@@ -189,18 +218,57 @@ window.addEventListener("load",function() {
 	}
     });
 
+    // ## Attack Sprite
+    Q.Sprite.extend("Attack", {
+	init: function(p) {
+	    this._super(p, {
+		type: Q.SPRITE_PLAYER,
+		sheet: 'player',
+		sprite: 'player'
+	    });
+	    this.add("2d, Anim");
+	    this.on("hit.sprite", this, "collision");
+	    //this.play('test');
+	},
+
+	collision: function(col) {
+	    var hitObj = col.obj.p;
+
+	    // hit object loses 1 hp if
+	    //   - object is player
+	    if (hitObj.type = Q.SPRITE_PLAYER)
+	    {
+		hitObjs.hp--;
+		this.destroy();
+	    }
+	}
+	    // // hit object dies if
+	    // //   - object is a player
+	    // //   - player's hitpoints are less than 1
+	    // if (hitObj.type == Q.SPRITE_PLAYER &&
+	    // 	hitObj.hp < 1)
+	    // {
+	    // 	col.obj.destroy();
+	    // 	this.destroy();
+	    // 	processed = true;
+	    // }
+    });
+    
     // ## Enemy Sprite
     // Create the Enemy class to add in some baddies
-    Q.Sprite.extend("Opponent",{
+    Q.Sprite.extend("Opponent", {
 	init: function(p) {
 	    this._super(p, {
 		type: Q.SPRITE_PLAYER,
 		sheet: 'leftpunch',
-		vx: 100 });
+		vx: 0,
+
+		hp: 6
+	    });
 
 	    // Enemies use the Bounce AI to change direction 
 	    // whenver they run into something.
-	    this.add('2d');
+	    this.add('2d, Anim');
 
 	    // Listen for a sprite collision, if it's the player,
 	    // end the game unless the enemy is hit on top
@@ -236,7 +304,7 @@ window.addEventListener("load",function() {
             dataAsset: 'level.json',
             sheet:     'tiles' }));
 
-
+	
 	// Create the player and add them to the stage
 	var player = stage.insert(new Q.Player());
 	
@@ -247,11 +315,33 @@ window.addEventListener("load",function() {
 	// Add in a couple of enemies
 	stage.insert(new Q.Opponent({ x: 700, y: 0 }));
 	stage.insert(new Q.Opponent({ x: 600, y: 0 }));
+
+	Q.stageScene('hud', 1, Q('Opponent').first().p);
 	
 	// Finally add in the tower goal
 	stage.insert(new Q.Tower({ x: 180, y: 50 }));
+
+
     });
 
+    // ## Debug(?) hud
+    Q.scene('hud', function(stage) {
+
+	var container = stage.insert(new Q.UI.Container({
+	    x: Q.width/2, y: 50, fill: "rgba(0,0,0,0.5)"	    
+	}));
+
+	var label = container.insert(
+	    new Q.UI.Text({ x: 0,
+			    y: 0,
+			    label: "Opponent HP: " + stage.options.hp,
+			    color: "green" }));
+
+	container.fit(20);
+    });
+
+    
+    
     // To display a game over / game won popup box, 
     // create a endGame scene that takes in a `label` option
     // to control the displayed message.
@@ -308,13 +398,14 @@ window.addEventListener("load",function() {
 	    combo2_ground_right: { frames: [2, 1, 3], rate: 1/10, flip: false, loop: false },
 	    combo2_air_left: { frames: [3, 1, 2], rate: 1/10, flip: "x", loop: false },
 	    combo2_air_right: { frames: [3, 1, 2], rate: 1/10, flip: false, loop: false },
-	    test: { frames: [24], rate: 1/15, flip: false, loop: true }
+	    test: { frames: [24, 25], rate: 1/8, flip: false, loop: true }
 	});
-	
+
 	// Finally, call stageScene to run the game
 	Q.stageScene("portalBattlefield");
+	//Q.stageScene("endGame", 1, { label: "You Won!" }); 	
 
-	
+
 
     });
 
