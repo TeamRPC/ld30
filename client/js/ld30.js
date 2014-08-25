@@ -405,6 +405,54 @@ window.addEventListener("load",function() {
 	    test: { frames: [24, 25], rate: 1/8, flip: false, loop: true }
 	});
 
+	Q.animations("knight", {
+	    idle_right: { frames: [0, 1], rate: 1/1, flip: false, loop: true },
+	    idle_left:  { frames: [0, 1], rate: 1/1, flip: "x", loop: true },	    
+	    run_right:  { frames: [16, 17, 18, 17], rate: 1/5, flip: false, loop: true },
+	    run_left:   { frames: [16, 17, 18, 17], rate: 1/5, flip: "x", loop: true },
+	    duck_right: { frames: [1, 11], rate: 1/3, flip: false , loop: false },
+	    duck_left:  { frames: [1, 11], rate: 1/3, flip: "x", loop: false },
+	    jump_right: { frames: [10, 12, 13], rate: 1/5, flip: false, loop: false },
+	    jump_left:  { frames: [10, 12, 13], rate: 1/5, flip: "x", loop: false },
+	    combo0_ground_left: { frames: [2, 1, 3], rate: 1/10, flip: "x", loop: false },
+	    combo0_ground_right: { frames: [2, 1, 3], rate: 1/10, flip: false, loop: false },
+	    combo0_air_left: { frames: [3, 1, 2], rate: 1/10, flip: "x", loop: false },
+	    combo0_air_right: { frames: [3, 1, 2], rate: 1/10, flip: false, loop: false },
+	    combo1_ground_left: { frames: [2, 1, 3], rate: 1/10, flip: "x", loop: false },
+	    combo1_ground_right: { frames: [2, 1, 3], rate: 1/10, flip: false, loop: false },
+	    combo1_air_left: { frames: [3, 1, 2], rate: 1/10, flip: "x", loop: false },
+	    combo1_air_right: { frames: [3, 1, 2], rate: 1/10, flip: false, loop: false },
+	    combo2_ground_left: { frames: [2, 1, 3], rate: 1/10, flip: "x", loop: false },
+	    combo2_ground_right: { frames: [2, 1, 3], rate: 1/10, flip: false, loop: false },
+	    combo2_air_left: { frames: [3, 1, 2], rate: 1/10, flip: "x", loop: false },
+	    combo2_air_right: { frames: [3, 1, 2], rate: 1/10, flip: false, loop: false },
+	    test: { frames: [24, 25], rate: 1/8, flip: false, loop: true }
+	});
+
+	Q.animations("robot", {
+	    idle_right: { frames: [0, 1], rate: 1/1, flip: false, loop: true },
+	    idle_left:  { frames: [0, 1], rate: 1/1, flip: "x", loop: true },	    
+	    run_right:  { frames: [16, 17, 18, 17], rate: 1/5, flip: false, loop: true },
+	    run_left:   { frames: [16, 17, 18, 17], rate: 1/5, flip: "x", loop: true },
+	    duck_right: { frames: [1, 11], rate: 1/3, flip: false , loop: false },
+	    duck_left:  { frames: [1, 11], rate: 1/3, flip: "x", loop: false },
+	    jump_right: { frames: [10, 12, 13], rate: 1/5, flip: false, loop: false },
+	    jump_left:  { frames: [10, 12, 13], rate: 1/5, flip: "x", loop: false },
+	    combo0_ground_left: { frames: [2, 1, 3], rate: 1/10, flip: "x", loop: false },
+	    combo0_ground_right: { frames: [2, 1, 3], rate: 1/10, flip: false, loop: false },
+	    combo0_air_left: { frames: [3, 1, 2], rate: 1/10, flip: "x", loop: false },
+	    combo0_air_right: { frames: [3, 1, 2], rate: 1/10, flip: false, loop: false },
+	    combo1_ground_left: { frames: [2, 1, 3], rate: 1/10, flip: "x", loop: false },
+	    combo1_ground_right: { frames: [2, 1, 3], rate: 1/10, flip: false, loop: false },
+	    combo1_air_left: { frames: [3, 1, 2], rate: 1/10, flip: "x", loop: false },
+	    combo1_air_right: { frames: [3, 1, 2], rate: 1/10, flip: false, loop: false },
+	    combo2_ground_left: { frames: [2, 1, 3], rate: 1/10, flip: "x", loop: false },
+	    combo2_ground_right: { frames: [2, 1, 3], rate: 1/10, flip: false, loop: false },
+	    combo2_air_left: { frames: [3, 1, 2], rate: 1/10, flip: "x", loop: false },
+	    combo2_air_right: { frames: [3, 1, 2], rate: 1/10, flip: false, loop: false },
+	    test: { frames: [24, 25], rate: 1/8, flip: false, loop: true }
+	});	
+
 	// Finally, call stageScene to run the game
 	Q.stageScene("portalBattlefield");
 	//Q.stageScene("endGame", 1, { label: "You Won!" }); 	
