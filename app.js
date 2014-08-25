@@ -75,7 +75,7 @@ io.on('connection', function(socket) {
     
     
     socket.emit('info', { id: player.id,
-			  team: 0,
+			  team: player.team,
 			});
 
     
