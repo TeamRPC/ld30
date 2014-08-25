@@ -22,7 +22,7 @@ console.log('server listening on port ' + port);
 // Handle the game multiplayer
 // ===========================
 
-var players = [];
+var players = {};
 
 var getUID = function getUID() {
     // thanks to http://stackoverflow.com/a/1349426/1004931
@@ -36,7 +36,7 @@ var getUID = function getUID() {
 	for (var i = 0; i < 5; i++) {
             id += possible.charAt(Math.floor(Math.random() * possible.length));
 	}
-	if (players.indexOf(id) == -1) provenUnique = true;
+	if (!players[id]) provenUnique = true;
     }
     return id;
 }
@@ -45,6 +45,12 @@ var getUID = function getUID() {
 
 io.on('connection', function(socket) {
 
+    // {
+    // 	asdfsd: {id: 3, team: 0},
+	
+    // },
+      
+    
     var player = {};
     player['id'] = getUID();
 
@@ -69,7 +75,7 @@ io.on('connection', function(socket) {
 
     // add this player to array holding current players
     console.log('new player ' + player.id + ' added to team ' + player.team);
-    players.push(player);
+    players[player.id] = { id: player.id, team: player.team };
     console.dir(players);
 
     
@@ -93,6 +99,7 @@ io.on('connection', function(socket) {
     // player disconnect
     socket.on('disconnect', function(p) {
 	console.log('player ' + player.id + ' disconnect');
+	delete players[player.id]
     });
 });
 
