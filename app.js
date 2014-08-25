@@ -1,7 +1,7 @@
 var express = require('express');
 var http = require('http');
 var app = express();
-var server = http.createServer(app);
+var server = http.Server(app);
 var io = require('socket.io')(server);
 
 
@@ -29,10 +29,14 @@ var getUID = function getUID() {
 
     var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     // get a unique string
-    while (players.indexOf(id)) {
+
+    var provenUnique = false;
+    while (!provenUnique) {
 	var id = "";
-	for( var i=0; i < 5; i++ )
+	for (var i = 0; i < 5; i++) {
             id += possible.charAt(Math.floor(Math.random() * possible.length));
+	}
+	if (players.indexOf(id) == -1) provenUnique = true;
     }
     return id;    
 }
