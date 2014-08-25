@@ -10,12 +10,8 @@
 window.addEventListener("load",function() {
 
     // connect to the server for multiplayer
-    var socket = io.connect('http://localhost');
+    var socket = io.connect('http://' + document.domain + ':' + location.port);
 
-
-    
-
-    
     // Set up an instance of the Quintus engine  and include
     // the Sprites, Scenes, Input and 2D module. The 2D module
     // includes the `TileLayer` class as well as the `2d` componet.

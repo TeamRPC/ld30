@@ -38,16 +38,62 @@ var getUID = function getUID() {
 	}
 	if (players.indexOf(id) == -1) provenUnique = true;
     }
-    return id;    
+    return id;
 }
 
 
 
 io.on('connection', function(socket) {
-    socket.emit('info', { id: getUID() });
-//    socket.on('my other event', function(data) {
-//	console.log(data);
-//    });
+
+    var player = {};
+    player['id'] = getUID();
+
+    // pick team for player
+    // pick the opposite team from the last player who joined
+    // or if there are no players in the game right now, choose at random
+
+    if (players.length > 0) {
+	// other people are in game
+	// get the last team assignment and choose the opposite
+	if (players[players.length - 1].team == 0) {
+	    player['team'] = 1;
+	} else {
+	    player['team'] = 0;
+	}
+	
+    } else {
+	// nobody is in game, choose a random team
+	player['team'] = Math.floor(Math.random() * 2);
+    }
+
+
+    // add this player to array holding current players
+    console.log('new player ' + player.id + ' added to team ' + player.team);
+    players.push(player);
+    console.dir(players);
+
+    
+    
+    socket.emit('info', { id: player.id,
+			  team: 0,
+			});
+
+    
+    socket.on('move', function(p) {
+	player['x'] = p.x;
+	player['y'] = p.y;
+	
+	socket.broadcast('move', { id: p.id,
+				   x: p.x,
+				   y: p.y
+				 });
+    });
+    
+
+    // player disconnect
+    socket.on('disconnect', function(p) {
+	console.log('player ' + player.id + ' disconnect');
+    });
 });
 
 
