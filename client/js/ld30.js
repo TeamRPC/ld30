@@ -9,8 +9,6 @@
 // target for the player.
 window.addEventListener("load",function() {
 
-    // connect to the server for multiplayer
-    var socket = io.connect('http://' + document.domain + ':' + location.port);
 
     // Set up an instance of the Quintus engine  and include
     // the Sprites, Scenes, Input and 2D module. The 2D module
@@ -301,7 +299,9 @@ window.addEventListener("load",function() {
             dataAsset: 'level.json',
             sheet:     'tiles' }));
 
-	// connect to server, get our team
+
+	// connect to the server for multiplayer
+	var socket = io.connect('http://' + document.domain + ':' + location.port);
 	socket.on('info', function(info) {
 	    // with this info, we can spawn.
 	    // Create the player and add them to the stage
