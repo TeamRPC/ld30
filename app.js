@@ -63,6 +63,7 @@ io.on('connection', function(socket) {
 	// get the last team assignment and choose the opposite
 	if (players[players.length - 1].team == 0) {
 	    player['team'] = 1;
+	    
 	} else {
 	    player['team'] = 0;
 	}
@@ -84,12 +85,18 @@ io.on('connection', function(socket) {
 			  team: player.team,
 			});
 
+    socket.on('spawn', function(p) {
+	console.log('player spawned.');
+	socket.broadcast.emit('spawn', { id: p.id,
+					 team: p.team
+				       });
+    });
     
     socket.on('move', function(p) {
 	player['x'] = p.x;
 	player['y'] = p.y;
 	
-	socket.broadcast('move', { id: p.id,
+	socket.broadcast.emit('move', { id: p.id,
 				   x: p.x,
 				   y: p.y
 				 });

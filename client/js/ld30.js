@@ -9,6 +9,7 @@
 // target for the player.
 window.addEventListener("load",function() {
 
+    var socket = io.connect('http://' + document.domain + ':' + location.port);
 
     // Set up an instance of the Quintus engine  and include
     // the Sprites, Scenes, Input and 2D module. The 2D module
@@ -48,6 +49,9 @@ window.addEventListener("load",function() {
 		y: 100,            // be overridden on object creation
 		jumpSpeed: -300,
 
+		lastStep: '',        // thing that happened last step. avoids repeats
+		lastX: 0,           // last reported x pos to multiplayer
+		lastY: 0,           // 
 		hp: 6,
 		comboLevel: 0,      // combo level player is at. they get 3 combos (0-2)
 		comboReady: true,   // whether or not player can do a combo right now
@@ -61,10 +65,11 @@ window.addEventListener("load",function() {
 	    Q.input.on('fireUp', this, this.armCombo);
 
 
+
+	    
 	    // Write event handlers to respond hook into behaviors.
 	    // hit.sprite is called everytime the player collides with a sprite
 	    this.on("hit.sprite", function(collision) {
-
 		// Check the collision, if it's the Tower, you win!
 		if(collision.obj.isA("Tower")) {
 		    Q.stageScene("endGame",1, { label: "You Won!" }); 
@@ -76,21 +81,21 @@ window.addEventListener("load",function() {
 	},
 
 	step: function(dt) {
-
+	    
 	    // make sure we only do one thing per step
 	    // after doing a thing, processed needs to be set true
 	    var processed = false;
 
-	    // play ground combo if
-	    //   - landed
+	    // play combo if
+	    //   - nothing else has happened this step
 	    //   - combo is active
 	    if (!processed &&
-		this.p.landed > 0 &&
 		this.p.comboActive)
 	    {
-		var comboString = 'combo' + this.p.comboLevel + '_ground_' + this.p.direction;
+		var comboString = 'combo' + this.p.comboLevel + '_' + this.p.direction;
 		console.log('COMBO ANIM: ' + comboString);
-		this.play("combo" + this.p.comboLevel + '_ground_' + this.p.direction);
+		this.play(comboString);
+		console.log('step gruond combo');
 		processed = true;
 	    }
 
@@ -100,24 +105,36 @@ window.addEventListener("load",function() {
             //   - landed
 	    //   - no combo active
             //   - not moving left or right
+	    //   - idle didn't happen last step
 	    if (!processed &&
 		this.p.landed > 0 &&
 		!this.p.comboActive &&
-		this.p.vx == 0)
+		this.p.vx == 0 &&
+		(this.p.lastStep != 'idle')
+	       )
 	    {
 		this.play("idle_" + this.p.direction);
+		//console.log('step idle');
+		this.p.lastStep == 'idle';
 		processed = true;
 	    }
 
 	    // play run if
 	    //   - nothing has been done this step
 	    //   - on the ground (landed)
+	    //   - no combo active
 	    //   - moving left or right
 	    if (!processed &&
 		this.p.landed > 0 &&
-		(this.p.vx > 0 || this.p.vx < 0))
+		!this.p.comboActive && 
+		(this.p.vx > 0 || this.p.vx < 0)
+	       )
 	    {
+		this.move();
+
 		this.play("run_" + this.p.direction);
+		console.log('step run');
+		this.p.lastStep = 'run';
 		processed = true;
 	    }
 
@@ -127,11 +144,26 @@ window.addEventListener("load",function() {
 	    if (!processed &&
 		this.p.landed <= 0)
 	    {
+		this.move();
 		this.play("jump_" + this.p.direction);
+		console.log('step jump');
+//		this.p.lastStep = 'jump';
 		processed = true;
 	    }
 		
 
+	    // send multiplayer movement update if
+	    //   - nothing else has happened this step
+	    //   - player moved more than 1px in any direction
+	    //     since we last checked if they moved
+	    if (!processed &&
+		(this.p.x - this.p.lastX > 1 || this.p.y - this.p.lastY > 1))
+	    {
+		console.log('sending move update');
+
+	    }
+
+	    
             // reset level if
 	    //   - player fell below 2000px on the y-axis
 	    if (this.p.y > 2000)
@@ -145,17 +177,28 @@ window.addEventListener("load",function() {
 	},
 
 	armCombo: function() {
+	    
 	    console.log('arm combo!');
 	    if (this.p.comboLevel < 3) {
+		this.p.comboActive = false;
 		this.p.comboReady = true;
 		this.p.comboLevel++;
 	    } else {
 		console.log('out of combos');
 		Q.input.off('fireUp');
+		Q.input.off('fire');
 	    }
+	},
+
+	move: function() {
+	    // send multiplayer position update
+	    this.p.lastX = this.p.x;
+	    this.p.lastY = this.p.y;
+	    socket.emit('move', { x: this.p.x, y: this.p.y });
 	},
 	
 	fireCombo: function() {
+	    
 	    if (this.p.comboLevel == 0 && this.p.comboReady) {
 		this.p.comboReady == false;
 		this.combo0();
@@ -176,30 +219,72 @@ window.addEventListener("load",function() {
 	    console.log('COMBO0 firing');
 	    this.p.comboActive = true;
 	    // do the attack
-	    console.log('new attack at');
-	    console.dir(this.c.points);
-
-	    if (this.p.direction == "right") {
-		
-		this.stage.insert(new Q.Attack({ x: this.c.points[0][0], y: this.c.points[0][1] }));
-//	    } else {
-//		this.stage.insert(new Q.Attack({ x: this.c.points[0][
-	    }
-	    this.p.comboActive = false;
+	    this.windAttack();
+	    //this.p.comboActive = false;
 	},
+
+	windAttack: function() {
+	    var hOffset = 18;
+	    var yOffset = 5;
+	    if (this.p.direction == "right") {
+		var attack = new Q.Attack({ x: hOffset += this.p.x, y: this.p.y - yOffset });
+		attack.play("wind_right");
+	    } else {
+		var attack = new Q.Attack({ x: this.p.x - hOffset, y: this.p.y - yOffset });
+		attack.play("wind_left");
+	    }
+	    this.stage.insert(attack);	    
+	},
+
+	laserAttack: function() {
+	    var hOffset = 18;
+	    var yOffset = 5;
+	    if (this.p.direction == "right") {
+		var attack0 = new Q.Attack({ x: hOffset += this.p.x, y: this.p.y - yOffset });
+	    } else {
+		var attack0 = new Q.Attack({ x: this.p.x - hOffset, y: this.p.y - yOffset });
+	    }
+	    
+	    attack0.play("laser");
+	    this.stage.insert(attack0);
+
+	},
+
+	knifeAttack: function() {
+	    var hOffset = 18;
+	    var yOffset = 10;
+	    var speed = 700;
+	    if (this.p.direction == "right") {
+		var attack0 = new Q.Attack({ x: hOffset += this.p.x,
+					     y: this.p.y - yOffset,
+					     vx: speed
+					   });
+	    } else {
+		var attack0 = new Q.Attack({ x: this.p.x - hOffset,
+					     y: this.p.y - yOffset,
+					     vx: speed - speed - speed
+					   });
+	    }
+	    
+	    attack0.play("knife_" + this.p.direction);		
+	    this.stage.insert(attack0);
+
+	},	
 	
 	combo1: function() {
 	    console.log('COMBO1 firing');
 	    this.p.comboActive = true;
 	    // do the attack
-	    this.p.comboActive = false;
+	    this.windAttack();
+	    //this.p.comboActive = false;
 	},
 
 	combo2: function() {
 	    console.log('COMBO2 firing');
 	    this.p.comboActive = true;
 	    // do the attack
-	    this.p.comboActive = false;
+	    this.knifeAttack();
+	    //this.p.comboActive = false;
 	}
 
     });
@@ -219,11 +304,15 @@ window.addEventListener("load",function() {
 	    this._super(p, {
 		type: Q.SPRITE_PLAYER,
 		sheet: 'player',
-		sprite: 'player'
+		sprite: 'player',
+		gravity: 0
 	    });
-	    this.add("2d, Anim");
+	    this.add("2d, animation");
 	    this.on("hit.sprite", this, "collision");
-	    //this.play('test');
+	    
+	    console.dir(this);
+	    this.play("wind_right");
+
 	},
 
 	collision: function(col) {
@@ -237,25 +326,17 @@ window.addEventListener("load",function() {
 		this.destroy();
 	    }
 	}
-	    // // hit object dies if
-	    // //   - object is a player
-	    // //   - player's hitpoints are less than 1
-	    // if (hitObj.type == Q.SPRITE_PLAYER &&
-	    // 	hitObj.hp < 1)
-	    // {
-	    // 	col.obj.destroy();
-	    // 	this.destroy();
-	    // 	processed = true;
-	    // }
+
     });
     
-    // ## Enemy Sprite
+    // ## Opponent Sprite
     // Create the Enemy class to add in some baddies
     Q.Sprite.extend("Opponent", {
 	init: function(p) {
 	    this._super(p, {
 		type: Q.SPRITE_PLAYER,
-		sheet: 'leftpunch',
+		sprite: "player",
+		sheet: "player",
 		vx: 0,
 
 		hp: 6
@@ -263,7 +344,7 @@ window.addEventListener("load",function() {
 
 	    // Enemies use the Bounce AI to change direction 
 	    // whenver they run into something.
-	    this.add('2d, Anim');
+	    this.add('2d, animation');
 
 	    // Listen for a sprite collision, if it's the player,
 	    // end the game unless the enemy is hit on top
@@ -295,37 +376,53 @@ window.addEventListener("load",function() {
 	stage.insert(new Q.Background({ asset: "background.png", x: 432, y: 225 }));
 
 	// Add in a tile layer, and make it the collision layer
-	stage.collisionLayer(new Q.TileLayer({
+	var tiles = stage.collisionLayer(new Q.TileLayer({
             dataAsset: 'level.json',
             sheet:     'tiles' }));
 
+	tiles.p.y += 10; // adjust tiles a little lower so players stand on correct y
+	console.dir(tiles);
 
-	// connect to the server for multiplayer
-	var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+	// when the server sees us connect, it sends us an info object
+	// with an assigned id and a team
 	socket.on('info', function(info) {
+
 	    // with this info, we can spawn.
 	    // Create the player and add them to the stage
 	    console.log('my id: ' + info.id + ' my team: ' + info.team);
 
 	    if (info.team == 0) var player = stage.insert(new Q.Player({ sheet: 'knight' }));
-	    if (info.team == 1) var player = stage.insert(new Q.Player({ sheet: 'robot' }));	    
+	    if (info.team == 1) var player = stage.insert(new Q.Player({ sheet: 'robot' }));
+
 	    player.p.team = info.team;
-	});	
+	    socket.emit('spawn', { id: info.id, team: info.team });
+	    
+	});
+
+	// Add in a couple of enemies
+	var oppy1 = stage.insert(new Q.Opponent({ x: 700, y: 0 }));
+	stage.insert(new Q.Opponent({ x: 600, y: 0 }));
+
+	// when another player connects, display them on screen
+	socket.on('spawn', function(oppy) {
+	    console.log('new opponent ' + oppy.id + ' on team ' + oppy.team);
+	    var opponent = stage.insert(new Q.Opponent({ x: 700, y: 0 }));
+	    Q.stageScene('hud', 1, Q('Opponent').first().p);
+
+	});
 	
 	// Give the stage a moveable viewport and tell it
 	// to follow the player.
 	//stage.add("viewport").follow(player);
 	
-	// Add in a couple of enemies
-	stage.insert(new Q.Opponent({ x: 700, y: 0 }));
-	stage.insert(new Q.Opponent({ x: 600, y: 0 }));
-
-	Q.stageScene('hud', 1, Q('Opponent').first().p);
-	
-	// Finally add in the tower goal
-	stage.insert(new Q.Tower({ x: 180, y: 50 }));
 
 
+	socket.on('move', function(opponent) {
+	    oppy1.p.x = opponent.x;
+	    oppy1.p.y = opponent.y;
+	    //console.dir(opponent);
+	});
     });
 
     // ## Debug(?) hud
@@ -379,77 +476,71 @@ window.addEventListener("load",function() {
 	Q.sheet("tiles", "tiles.png", { tilew: 32, tileh: 32 });
 
 	// Or from a .json asset that defines sprite locations
-	Q.compileSheets("characters.png","characters.json");
+	Q.compileSheets("characters.png", "characters.json");
 
 	Q.animations("player", {
-	    idle_right: { frames: [0, 1], rate: 1/1, flip: false, loop: true },
-	    idle_left:  { frames: [0, 1], rate: 1/1, flip: "x", loop: true },	    
+	    idle_right: { frames: [0, 29], rate: 1/1, flip: false, loop: true },
+	    idle_left:  { frames: [0, 29], rate: 1/1, flip: "x", loop: true },	    
 	    run_right:  { frames: [16, 17, 18, 17], rate: 1/5, flip: false, loop: true },
 	    run_left:   { frames: [16, 17, 18, 17], rate: 1/5, flip: "x", loop: true },
 	    duck_right: { frames: [1, 11], rate: 1/3, flip: false , loop: false },
 	    duck_left:  { frames: [1, 11], rate: 1/3, flip: "x", loop: false },
 	    jump_right: { frames: [10, 12, 13], rate: 1/5, flip: false, loop: false },
 	    jump_left:  { frames: [10, 12, 13], rate: 1/5, flip: "x", loop: false },
-	    combo0_ground_left: { frames: [2, 1, 3], rate: 1/10, flip: "x", loop: false },
-	    combo0_ground_right: { frames: [2, 1, 3], rate: 1/10, flip: false, loop: false },
-	    combo0_air_left: { frames: [3, 1, 2], rate: 1/10, flip: "x", loop: false },
-	    combo0_air_right: { frames: [3, 1, 2], rate: 1/10, flip: false, loop: false },
-	    combo1_ground_left: { frames: [2, 1, 3], rate: 1/10, flip: "x", loop: false },
-	    combo1_ground_right: { frames: [2, 1, 3], rate: 1/10, flip: false, loop: false },
-	    combo1_air_left: { frames: [3, 1, 2], rate: 1/10, flip: "x", loop: false },
-	    combo1_air_right: { frames: [3, 1, 2], rate: 1/10, flip: false, loop: false },
-	    combo2_ground_left: { frames: [2, 1, 3], rate: 1/10, flip: "x", loop: false },
-	    combo2_ground_right: { frames: [2, 1, 3], rate: 1/10, flip: false, loop: false },
-	    combo2_air_left: { frames: [3, 1, 2], rate: 1/10, flip: "x", loop: false },
-	    combo2_air_right: { frames: [3, 1, 2], rate: 1/10, flip: false, loop: false },
-	    test: { frames: [24, 25], rate: 1/8, flip: false, loop: true }
-	});
 
+	    combo0_right: { frames: [2, 3, 3, 26, 26, 26], rate: 1/8, flip: false, loop: false },
+	    combo0_left: { frames: [2, 3, 3, 26, 26, 26], rate: 1/8, flip: 'x', loop: false },
+	    combo1_right: { frames: [4, 5, 5, 26, 26, 26], rate: 1/8, flip: false, loop: false },
+	    combo1_left: { frames: [4, 5, 5, 26, 26, 26], rate: 1/8, flip: 'x', loop: false },	    
+	    combo2_right: { frames: [8, 1, 7, 9], rate: 1/8, flip: false, loop: false },
+	    combo2_left: { frames: [8, 1, 7, 9], rate: 1/8, flip: 'x', loop: false },	    
+
+
+	    laser: { frames: [30, 38], rate: 1/8, flip: false, loop: true },
+	    knife_left: { frames: [31], rate: 1/1, flip: "x", loop: true },	    
+	    knife_right: { frames: [31], rate: 1/1, flip: false, loop: true },   
+	    wind_right: { frames: [27, 28, 20], rate: 1/15, flip: false, loop: false },
+	    wind_left: { frames: [27, 28, 20], rate: 1/15, flip: 'x', loop: false }
+
+	});
+	
 	Q.animations("knight", {
-	    idle_right: { frames: [0, 1], rate: 1/1, flip: false, loop: true },
-	    idle_left:  { frames: [0, 1], rate: 1/1, flip: "x", loop: true },	    
+	    idle_right: { frames: [0, 29], rate: 1/1, flip: false, loop: true },
+	    idle_left:  { frames: [0, 29], rate: 1/1, flip: "x", loop: true },	    
 	    run_right:  { frames: [16, 17, 18, 17], rate: 1/5, flip: false, loop: true },
 	    run_left:   { frames: [16, 17, 18, 17], rate: 1/5, flip: "x", loop: true },
 	    duck_right: { frames: [1, 11], rate: 1/3, flip: false , loop: false },
 	    duck_left:  { frames: [1, 11], rate: 1/3, flip: "x", loop: false },
 	    jump_right: { frames: [10, 12, 13], rate: 1/5, flip: false, loop: false },
 	    jump_left:  { frames: [10, 12, 13], rate: 1/5, flip: "x", loop: false },
-	    combo0_ground_left: { frames: [2, 1, 3], rate: 1/10, flip: "x", loop: false },
-	    combo0_ground_right: { frames: [2, 1, 3], rate: 1/10, flip: false, loop: false },
-	    combo0_air_left: { frames: [3, 1, 2], rate: 1/10, flip: "x", loop: false },
-	    combo0_air_right: { frames: [3, 1, 2], rate: 1/10, flip: false, loop: false },
-	    combo1_ground_left: { frames: [2, 1, 3], rate: 1/10, flip: "x", loop: false },
-	    combo1_ground_right: { frames: [2, 1, 3], rate: 1/10, flip: false, loop: false },
-	    combo1_air_left: { frames: [3, 1, 2], rate: 1/10, flip: "x", loop: false },
-	    combo1_air_right: { frames: [3, 1, 2], rate: 1/10, flip: false, loop: false },
-	    combo2_ground_left: { frames: [2, 1, 3], rate: 1/10, flip: "x", loop: false },
-	    combo2_ground_right: { frames: [2, 1, 3], rate: 1/10, flip: false, loop: false },
-	    combo2_air_left: { frames: [3, 1, 2], rate: 1/10, flip: "x", loop: false },
-	    combo2_air_right: { frames: [3, 1, 2], rate: 1/10, flip: false, loop: false },
+
+	    combo0_right: { frames: [2, 3, 3, 26, 26, 26], rate: 1/8, flip: false, loop: false },
+	    combo0_left: { frames: [2, 3, 3, 26, 26, 26], rate: 1/8, flip: 'x', loop: false },
+	    combo1_right: { frames: [4, 5, 5, 26, 26, 26], rate: 1/8, flip: false, loop: false },
+	    combo1_left: { frames: [4, 5, 5, 26, 26, 26], rate: 1/8, flip: 'x', loop: false },
+	    combo2_right: { frames: [8, 1, 7, 9], rate: 1/3, flip: false, loop: false },
+	    combo2_left: { frames: [8, 1, 7, 9], rate: 1/8, flip: false, loop: false },	    	    
+
 	    test: { frames: [24, 25], rate: 1/8, flip: false, loop: true }
 	});
 
 	Q.animations("robot", {
-	    idle_right: { frames: [0, 1], rate: 1/1, flip: false, loop: true },
-	    idle_left:  { frames: [0, 1], rate: 1/1, flip: "x", loop: true },	    
+	    idle_right: { frames: [0, 29], rate: 1/1, flip: false, loop: true },
+	    idle_left:  { frames: [0, 29], rate: 1/1, flip: "x", loop: true },	    
 	    run_right:  { frames: [16, 17, 18, 17], rate: 1/5, flip: false, loop: true },
 	    run_left:   { frames: [16, 17, 18, 17], rate: 1/5, flip: "x", loop: true },
 	    duck_right: { frames: [1, 11], rate: 1/3, flip: false , loop: false },
 	    duck_left:  { frames: [1, 11], rate: 1/3, flip: "x", loop: false },
 	    jump_right: { frames: [10, 12, 13], rate: 1/5, flip: false, loop: false },
 	    jump_left:  { frames: [10, 12, 13], rate: 1/5, flip: "x", loop: false },
-	    combo0_ground_left: { frames: [2, 1, 3], rate: 1/10, flip: "x", loop: false },
-	    combo0_ground_right: { frames: [2, 1, 3], rate: 1/10, flip: false, loop: false },
-	    combo0_air_left: { frames: [3, 1, 2], rate: 1/10, flip: "x", loop: false },
-	    combo0_air_right: { frames: [3, 1, 2], rate: 1/10, flip: false, loop: false },
-	    combo1_ground_left: { frames: [2, 1, 3], rate: 1/10, flip: "x", loop: false },
-	    combo1_ground_right: { frames: [2, 1, 3], rate: 1/10, flip: false, loop: false },
-	    combo1_air_left: { frames: [3, 1, 2], rate: 1/10, flip: "x", loop: false },
-	    combo1_air_right: { frames: [3, 1, 2], rate: 1/10, flip: false, loop: false },
-	    combo2_ground_left: { frames: [2, 1, 3], rate: 1/10, flip: "x", loop: false },
-	    combo2_ground_right: { frames: [2, 1, 3], rate: 1/10, flip: false, loop: false },
-	    combo2_air_left: { frames: [3, 1, 2], rate: 1/10, flip: "x", loop: false },
-	    combo2_air_right: { frames: [3, 1, 2], rate: 1/10, flip: false, loop: false },
+
+	    combo0_right: { frames: [2, 3, 26], rate: 1/8, flip: false, loop: false },
+	    combo0_left: { frames: [2, 3, 26], rate: 1/8, flip: 'x', loop: false },
+	    combo1_right: { frames: [4, 5, 5, 26, 26, 26], rate: 1/8, flip: false, loop: false },
+	    combo1_left: { frames: [4, 5, 5, 26, 26, 26], rate: 1/8, flip: 'x', loop: false },
+	    combo2_right: { frames: [8, 1, 7, 9], rate: 1/3, flip: false, loop: false },
+	    combo2_left: { frames: [8, 1, 7, 9], rate: 1/8, flip: false, loop: false },	    
+	    
 	    test: { frames: [24, 25], rate: 1/8, flip: false, loop: true }
 	});	
 
@@ -461,15 +552,5 @@ window.addEventListener("load",function() {
 
     });
 
-    // ## Possible Experimentations:
-    // 
-    // The are lots of things to try out here.
-    // 
-    // 1. Modify level.json to change the level around and add in some more enemies.
-    // 2. Add in a second level by creating a level2.json and a level2 scene that gets
-    //    loaded after level 1 is complete.
-    // 3. Add in a title screen
-    // 4. Add in a hud and points for jumping on enemies.
-    // 5. Add in a `Repeater` behind the TileLayer to create a paralax scrolling effect.
 
 });
